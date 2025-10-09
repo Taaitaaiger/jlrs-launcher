@@ -136,8 +136,8 @@ fn get_julia_dir_from_channel(
         }
         JuliaupConfigChannel::SystemChannel { version } => {
             let path = &config_data
-                .installed_versions.get(version)
-                .ok_or_else(|| anyhow!("The juliaup configuration is in an inconsistent state, the channel {} is pointing to Julia version {}, which is not installed.", channel, version))?.path;
+                    .installed_versions.get(version)
+                    .ok_or_else(|| anyhow!("The juliaup configuration is in an inconsistent state, the channel {} is pointing to Julia version {}, which is not installed.", channel, version))?.path;
 
             let absolute_path = juliaupconfig_path
                 .parent()
@@ -192,6 +192,9 @@ fn get_julia_dir_from_channel(
                     )
                 })?;
             return Ok(absolute_path.into_path_buf());
+        }
+        JuliaupConfigChannel::AliasChannel { .. } => {
+            anyhow::bail!("Unexpected alias channel after resolution: {channel}");
         }
     }
 }
