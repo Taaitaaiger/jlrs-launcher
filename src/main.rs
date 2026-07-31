@@ -158,6 +158,7 @@ fn get_julia_dir_from_channel(
             local_etag,
             server_etag,
             version: _,
+            binary_path,
         } => {
             if local_etag != server_etag {
                 if channel.starts_with("nightly") {
@@ -183,7 +184,7 @@ fn get_julia_dir_from_channel(
             let absolute_path = juliaupconfig_path
                 .parent()
                 .unwrap()
-                .join(path)
+                .join(binary_path.as_ref().unwrap_or(path))
                 .normalize()
                 .with_context(|| {
                     format!(
