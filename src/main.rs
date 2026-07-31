@@ -75,12 +75,42 @@ fn get_julia_dir(channel_from_cmd_line: Option<String>) -> Result<PathBuf> {
     )
     .with_context(|| {
         format!(
-            "The jlrs launcher failed to determine the command for the `{}` channel.",
+            "The jlrs launcher failed to determine the path to the Julia binary for the `{}` channel.",
             julia_channel_to_use
         )
     })?;
 
     Ok(julia_dir)
+}
+
+fn get_julia_dir_from_config(
+    juliaup_cfg_path: &Path,
+    path: &str,
+    binary_path: Option<&str>,
+) -> Result<PathBuf> {
+    let relative_julia_dir = if let Some(binary_path) = binary_path {
+        PathBuf::from(binary_path)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .into()
+    } else {
+        PathBuf::from(path)
+    };
+
+    juliaup_cfg_path
+        .parent()
+        .unwrap() // unwrap OK because there should always be a parent
+        .join(relative_julia_dir)
+        .normalize()
+        .map(|s| s.into_path_buf())
+        .with_context(|| {
+            format!(
+                "Failed to normalize path for Julia binary, starting from `{}`.",
+                juliaup_cfg_path.display()
+            )
+        })
 }
 
 fn get_julia_dir_from_channel(
@@ -135,22 +165,15 @@ fn get_julia_dir_from_channel(
                 .into());
         }
         JuliaupConfigChannel::SystemChannel { version } => {
-            let path = &config_data
+            let config = config_data
                     .installed_versions.get(version)
-                    .ok_or_else(|| anyhow!("The juliaup configuration is in an inconsistent state, the channel {} is pointing to Julia version {}, which is not installed.", channel, version))?.path;
+                    .ok_or_else(|| anyhow!("The juliaup configuration is in an inconsistent state, the channel {} is pointing to Julia version {}, which is not installed.", channel, version))?;
 
-            let absolute_path = juliaupconfig_path
-                .parent()
-                .unwrap() // unwrap OK because there should always be a parent
-                .join(path)
-                .normalize()
-                .with_context(|| {
-                    format!(
-                        "Failed to normalize path for Julia binary, starting from `{}`.",
-                        juliaupconfig_path.display()
-                    )
-                })?;
-            return Ok(absolute_path.into_path_buf());
+            get_julia_dir_from_config(
+                juliaupconfig_path,
+                &config.path,
+                config.binary_path.as_ref().map(|s| s.as_str()),
+            )
         }
         JuliaupConfigChannel::DirectDownloadChannel {
             path,
@@ -158,6 +181,7 @@ fn get_julia_dir_from_channel(
             local_etag,
             server_etag,
             version: _,
+            binary_path,
         } => {
             if local_etag != server_etag {
                 if channel.starts_with("nightly") {
@@ -180,18 +204,11 @@ fn get_julia_dir_from_channel(
                 }
             }
 
-            let absolute_path = juliaupconfig_path
-                .parent()
-                .unwrap()
-                .join(path)
-                .normalize()
-                .with_context(|| {
-                    format!(
-                        "Failed to normalize path for Julia binary, starting from `{}`.",
-                        juliaupconfig_path.display()
-                    )
-                })?;
-            return Ok(absolute_path.into_path_buf());
+            get_julia_dir_from_config(
+                juliaupconfig_path,
+                path,
+                binary_path.as_ref().map(|s| s.as_str()),
+            )
         }
         JuliaupConfigChannel::AliasChannel { .. } => {
             anyhow::bail!("Unexpected alias channel after resolution: {channel}");
