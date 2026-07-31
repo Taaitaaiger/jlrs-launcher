@@ -75,7 +75,7 @@ fn get_julia_dir(channel_from_cmd_line: Option<String>) -> Result<PathBuf> {
     )
     .with_context(|| {
         format!(
-            "The jlrs launcher failed to determine the command for the `{}` channel.",
+            "The jlrs launcher failed to determine the path to the Julia binary for the `{}` channel.",
             julia_channel_to_use
         )
     })?;
