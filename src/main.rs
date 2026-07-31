@@ -135,9 +135,11 @@ fn get_julia_dir_from_channel(
                 .into());
         }
         JuliaupConfigChannel::SystemChannel { version } => {
-            let path = &config_data
+            let config = config_data
                     .installed_versions.get(version)
-                    .ok_or_else(|| anyhow!("The juliaup configuration is in an inconsistent state, the channel {} is pointing to Julia version {}, which is not installed.", channel, version))?.path;
+                    .ok_or_else(|| anyhow!("The juliaup configuration is in an inconsistent state, the channel {} is pointing to Julia version {}, which is not installed.", channel, version))?;
+
+            let path = config.binary_path.as_ref().unwrap_or(&config.path);
 
             let absolute_path = juliaupconfig_path
                 .parent()

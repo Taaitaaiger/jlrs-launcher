@@ -1,6 +1,6 @@
 [package]
 name = "jlrs-launcher"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Thomas van Doornmalen <thomas.vandoornmalen@gmail.com>"]
 description = """
 A juliaup-aware launcher for projects that use jlrs
